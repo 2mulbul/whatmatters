@@ -2,7 +2,21 @@ import * as THREE from "../three.lib/three.module.js";
 import { OrbitControls } from "../three.lib/OrbitControls.js";
 import { GLTFLoader } from "../three.lib/GLTFLoader.js";
 
+var book0 = {
+	name: "완전한 행복",
+	width:150,
+	height: 210,
+	depth: 25,
+	weight: 716
+}
 
+var iphone = {
+	name: "iphone",
+	width:150,
+	height: 210,
+	depth: 25,
+	weight: 716
+}
 
 var explorerX = 0;
 var explorerY = 0;
@@ -38,7 +52,7 @@ class App {
 
 		this._setupCamera();
 		this._setupLight();
-		this._setupAmmo();
+		this._setupModel();
 		//this._setupControls();
 		this._setupPicking();
 
@@ -52,22 +66,7 @@ class App {
 
 		requestAnimationFrame(this.render.bind(this));
 	}
-	_setupAmmo() {
-		Ammo().then(() => {
-			const overlappingParcache = new Ammo.btDbvtBroadphase();
-			const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-			const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-			const solver = new Ammo.btSequentialImpulseConstraintSolver();
-			const transformAssistant = new Ammo.btTransform();
-			const physicsWorld = new Ammo.btDiscreteDynamicsWorld(
-				dispatcher, overlappingParcache, solver, collisionConfiguration);
-			physicsWorld.setGravity(new Ammo.btVector3(0, -9.807, 0));
 
-			this._transformAssistant = transformAssistant;
-			this._physicsWorld = physicsWorld;
-			this._setupModel();
-		})
-	}
 	_setupCamera() {
 		const width = this._divContainer.clientWidth;
 		const height = this._divContainer.clientHeight;
@@ -78,7 +77,7 @@ class App {
 			0.1,
 			200
 		);
-		camera.position.set(0, 0, 70);
+		camera.position.set(0, 0, 40);
 		//camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 		this._camera = camera;
@@ -110,7 +109,7 @@ class App {
 		this._createObjects();
 	}
 	_createTable() {
-		const position = { x: 0, y: -27, z: 0 };
+		const position = { x: 0, y: -50, z: 0 };
 		const attribute = { r1: 40, r2: 40, h: 1, s: 45 };
 
 		const tableGeometry = new THREE.CylinderGeometry(attribute.r1, attribute.r2, attribute.h, attribute.s);
@@ -121,31 +120,20 @@ class App {
 		table.position.set(position.x, position.y, position.z);
 
 		this._scene.add(table);
-
-		//AmmoJS Section
-		const transform = new Ammo.btTransform();
-		const quaternion = { x: 0, y: 0, z: 0, w: 1 };
-		transform.setIdentity();
-		transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
-		transform.setRotation(new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
-		const motionState = new Ammo.btDefaultMotionState(transform);
-		const colShape = new Ammo.btCylinderShape(
-			new Ammo.btVector3(attribute.r1, attribute.h * 0.5, attribute.r2)
-		);
-		const mass = 0;
-		colShape.calculateLocalInertia(mass);
-		const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape);
-		const body = new Ammo.btRigidBody(rbInfo);
-		this._physicsWorld.addRigidBody(body);
 	}
 	_createObjects() {
 		var visibleObject = [];
 		var invisibleObjects = [];
-
+		console.log(book0.name);
 		//책 book
 		//threeJS Section
+		var sizeValue = 15;
 		const position = { x: 0, y: 0, z: 0 };
-		const attribute = { w: 11, h: 15, d: 2 };
+		const attribute = {
+			w: book0.width / sizeValue,
+			h: book0.height / sizeValue,
+			d: book0.depth / sizeValue
+		};
 
 		const loader = new THREE.TextureLoader();
 		const geometry = new THREE.BoxGeometry(attribute.w, attribute.h, attribute.d);
@@ -163,7 +151,7 @@ class App {
 		const book = new THREE.Mesh(geometry, materials);
 		book.position.set(position.x, position.y, position.z);
 
-		book.name = "book"
+		book.name = "bookObj"
 		book.castShadow = true;
 		book.receiveShadow = true;
 
@@ -171,37 +159,6 @@ class App {
 		this._scene.add(book);
 
 		visibleObject.push(book);
-
-
-		//AmmoJS Section
-		const transform = new Ammo.btTransform();
-		const quaternion = new THREE.Quaternion();
-		quaternion.setFromEuler(book.rotation);
-		const mass = 50;
-
-		transform.setIdentity();
-		transform.setOrigin( new Ammo.btVector3(position.x, position.y, position.z) );
-		transform.setRotation( new Ammo.btQuaternion( quaternion.x, quaternion.y, quaternion.z, quaternion.w ) );
-		const motionState = new Ammo.btDefaultMotionState( transform );
-		const colShape = new Ammo.btBoxShape(
-			new Ammo.btVector3(attribute.w * 0.5, attribute.h * 0.5, attribute.d * 0.5)
-		);
-
-		const localInertia = new Ammo.btVector3( 0, 0, 0 );
-		colShape.calculateLocalInertia(mass, localInertia);
-
-		const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, colShape, localInertia);
-		const body = new Ammo.btRigidBody(rbInfo);
-		this._physicsWorld.addRigidBody( body );
-
-		//body.setFriction(4);
-		//body.setRollingFriction(10);
-
-		body.setActivationState( 4 )
-		book.physicsBody = body;
-		this._body = body
-
-
 
 
 		//아이폰 iphone
@@ -212,10 +169,10 @@ class App {
 			(gltf) => {
 				const obj3d = gltf.scene;
 				obj3d.rotation.y = Math.PI;
-				const iphoneScale = 105;
+				const iphoneScale = 10;
+				obj3d.position.set(0, 40, 0);
 				obj3d.scale.set(iphoneScale, iphoneScale, iphoneScale);
-				obj3d.name = "iphone";
-				
+				obj3d.name = "iphoneObj";
 				obj3d.traverse((child) => {
 					if (child.isMesh) {
 						const url = "./comparisonObjects/textures/Frame 3.jpg"
@@ -238,6 +195,7 @@ class App {
 					}
 					//console.log(child);
 				})
+				this._scene.add(obj3d);
 				invisibleObjects.push(obj3d);
 			}, function (xhr) {
 				// 모델이 로드되는 동안 호출되는 함수
@@ -319,32 +277,27 @@ class App {
 		console.log(this._visibleObject);
 		console.log(this._invisibleObjects);
 
-
+		const tweenTl = gsap.timeline();
 		const target = this._raycaster.intersectObjects(this._scene.children);
+		console.log(this._invisibleObjects);
+
 		if (target.length > 0) {
 			//터치 시 반응 코드
+			tweenTl.to(this._visibleObject[0].position, 1.5, { y: -40, ease: "power3.inOut" },0)
+				.to(this._invisibleObjects[0].position, 1.5, { y: 0, ease: "power3.inOut" }, 0.5);
+			this._changeObj(this._visibleObject[0], this._invisibleObjects[0]);
 			
-			console.log(target[0].object.rotation);
-			
-			//this._changeObj(this._visibleObject[0], this._invisibleObjects[0]);
-			console.log(this._invisibleObjects);
-
+			console.log("TOUCH TARGET POSITION.Y:", target[0].object.position.y);		
 			console.log("Touch Object SUCCESS!");
-			const eventTimeStamp = new Date();
-			this._eventTimeStamp = eventTimeStamp;
-			
-			console.log(eventTimeStamp);
+
 			beforeTouch = false;
-
-
-
 			return;
 		}
 
 	}
 	_changeObj(visibleObj, invisibleObj) {
-		this._scene.remove(visibleObj);
-		this._scene.add(invisibleObj);
+		//this._scene.remove(visibleObj);
+		//this._scene.add(invisibleObj);
 		
 		this._visibleObject.shift();
 		this._visibleObject.push(invisibleObj);
@@ -394,103 +347,66 @@ class App {
 		const slowValue = 0.001* 0.3;
 		time *= slowValue;
 		const startRotationY = 0.3
-		////커스텀 카메라 위치지정
-		//var minCameraXLimit = -30;
-		//var maxCameraXLimit = 30;
-		//var minCameraYLimit = -15;
-		//var maxCameraYLimit = 30;
+		//커스텀 카메라 위치지정
+		var minCameraXLimit = -30;
+		var maxCameraXLimit = 30;
+		var minCameraYLimit = -15;
+		var maxCameraYLimit = 30;
 
-		////damping이 작아질수록 사용자의 움직임에 대한 카메라 움직임의 저항이 커짐
-		//var damping = 0.03;
-		//var resistanceRange = 6
+		//damping이 작아질수록 사용자의 움직임에 대한 카메라 움직임의 저항이 커짐
+		var damping = 0.03;
+		var resistanceRange = 6
 
-		//if (this._camera.position.y < minCameraYLimit + resistanceRange) {
-		//	//카메라 y축 위치를 제한하되 부드럽게 하는 모션
-		//		//y축 위치가 위험범위(resistanceRange) 안에 들어오면 damping 값이 점점 작아지도록(저항이 커지도록) 
-		//	damping *= (this._camera.position.y - minCameraYLimit) * 0.2;
-		//	this._camera.position.x += (explorerX- this._camera.position.x) * damping;
-		//	this._camera.position.y += (-explorerY - this._camera.position.y) * damping;
-		//} else {
-		//	this._camera.position.x += (explorerX- this._camera.position.x) * damping;
-		//	this._camera.position.y += (-explorerY - this._camera.position.y) * damping;
-		//}
-		
-		
-		//this._camera.position.x = Math.max( minCameraXLimit, Math.min( maxCameraXLimit, this._camera.position.x ) );
-		//this._camera.position.y = Math.max( minCameraYLimit, Math.min( maxCameraYLimit, this._camera.position.y ) );
-
-		this._camera.lookAt(this._scene.position);
-		//책 회전
-		if (beforeTouch) {
-			//this._book.rotation.y = 0.3 + time;
-			this._scene.traverse((child) => {
-				if (child.isMesh) {
-				child.rotation.y = startRotationY + time;
-					
-				}
-				if (child.name === "iphone") {
-					//let mat = new THREE.MeshLambertMaterial;
-					//let color = new THREE.Color(0x146551);
-					//   mat.color = color;
-					//child.material = mat;
-				}
-			})
-			
+		if (this._camera.position.y < minCameraYLimit + resistanceRange) {
+			//카메라 y축 위치를 제한하되 부드럽게 하는 모션
+				//y축 위치가 위험범위(resistanceRange) 안에 들어오면 damping 값이 점점 작아지도록(저항이 커지도록) 
+			damping *= (this._camera.position.y - minCameraYLimit) * 0.2;
+			this._camera.position.x += (explorerX- this._camera.position.x) * damping;
+			this._camera.position.y += (-explorerY - this._camera.position.y) * damping;
 		} else {
-			//const rotationDelta = this._eventTimeStamp - this._startTime;
-			//const rotationY = startRotationY + rotationDelta * slowValue;
-			//console.log(rotationY)
-			const deltaTime = this._clock.getDelta();
-			//this._scene.traverse((child) => {
-			//	if (child.isMesh) {
-			//	child.rotation.y = rotationY;
-					
-			//	}
-			//})
-			if(this._physicsWorld) {
-				this._physicsWorld.stepSimulation(deltaTime);
-				this._scene.traverse(obj3d => {
-					if(obj3d instanceof THREE.Mesh) {
-						const objThree = obj3d;
-						const objAmmo = objThree.physicsBody;
-						if(objAmmo) {
-							const motionState = objAmmo.getMotionState();
-							if (motionState) {
-								motionState.getWorldTransform(this._transformAssistant);
-								var position = this._transformAssistant.getOrigin();
-								var quaternion = this._transformAssistant.getRotation();
-								objThree.position.set(position.x(), position.y(), position.z());
-								objThree.quaternion.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
-								
-								//this._scene.traverse((child) => {
-								//	if (child.isMesh) {
-								//		objThree.quaternion.y = child.rotation.y;
-										
-								//	}
-								//})
-	
-								
-								//let tmpTrans = this._tmpTrans;
-								//if(tmpTrans === undefined) tmpTrans = this._tmpTrans = new Ammo.btTransform();
-								//motionState.getWorldTransform(tmpTrans);
-								
-								//const pos = tmpTrans.getOrigin();
-								//const quat = tmpTrans.getRotation();
-								
-								//objThree.position.set(pos.x(), pos.y(), pos.z());
-								//objThree.quaternion.set(quat.x(), quat.y(), quat.z(), quat.w());
-								//objThree.position.copy(this._book.position);
-								
-							}                    
-						}
-					}
-				});            
-			}
+			this._camera.position.x += (explorerX- this._camera.position.x) * damping;
+			this._camera.position.y += (-explorerY - this._camera.position.y) * damping;
 		}
 		
+		
+		this._camera.position.x = Math.max( minCameraXLimit, Math.min( maxCameraXLimit, this._camera.position.x ) );
+		this._camera.position.y = Math.max( minCameraYLimit, Math.min( maxCameraYLimit, this._camera.position.y ) );
 
+		this._camera.lookAt(this._scene.position);
 
-
+		//물체 회전
+		this._scene.traverse((child) => {
+			if (child.isMesh) {
+				child.rotation.y = startRotationY + time;
+			}
+		})
+		//if (beforeTouch) {
+		//	//this._book.rotation.y = 0.3 + time;
+		//	this._scene.traverse((child) => {
+		//		if (child.isMesh) {
+		//			child.rotation.y = startRotationY + time;
+		//		}
+		//		if (child.name === "iphoneObj") {
+		//			//let mat = new THREE.MeshLambertMaterial;
+		//			//let color = new THREE.Color(0x146551);
+		//			//   mat.color = color;
+		//			//child.material = mat;
+		//		}
+		//	})
+			
+		//} else {
+		//	//const rotationDelta = this._eventTimeStamp - this._startTime;
+		//	//const rotationY = startRotationY + rotationDelta * slowValue;
+		//	//console.log(rotationY)
+		//	const deltaTime = this._clock.getDelta();
+		//	//this._scene.traverse((child) => {
+		//	//	if (child.isMesh) {
+		//	//	child.rotation.y = rotationY;
+					
+		//	//	}
+		//	//})
+		//}
+		
 
 		this._renderer.render(this._scene, this._camera);
 		
